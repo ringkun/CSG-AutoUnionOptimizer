@@ -1,0 +1,156 @@
+local sele = game.Selection:Get()
+local Collect = game.CollectionService
+local CHS = game.ChangeHistoryService
+CHS:SetWaypoint("Safe")
+
+local unoptimized = 0
+
+modelList={}
+for i,s in pairs(sele) do
+	if s:IsA("Model") then
+		table.insert(modelList,s)
+	end
+	for i,models in pairs(s:GetDescendants()) do
+		if models:IsA("BasePart") then
+			unoptimized+=1
+		end
+
+		if models:IsA("Model") then
+			table.insert(modelList,models)
+		end
+	end
+end
+
+local hl = Instance.new("Highlight")
+hl.Enabled = true
+hl.Parent = workspace
+hl.Archivable = false
+local errorParts = {}
+
+local iteratedUpdate = false
+for i,m:Model in pairs(modelList) do
+	local uniongroup = {}
+	local AppearancePairList = {}
+
+
+
+
+	print("[".. math.floor(i/#modelList*100)/100 .."]".."Union "..m.Name)
+
+	for i,p:BasePart in pairs(m:GetChildren()) do
+		if p:IsA("BasePart") then
+			local mat = string.split(tostring(p.Material), ".")[3]
+			local MatAndColor = "".. mat ..":"..p.Color.R .. ",".. p.Color.G ..","..
+				p.Color.B 
+			if not table.find(AppearancePairList,MatAndColor) then
+				table.insert(AppearancePairList,MatAndColor)
+				local matcolormod = Instance.new("Model")
+				matcolormod.Parent = m
+				matcolormod.Name = #AppearancePairList
+			end
+			if AppearancePairList[MatAndColor] == nil then
+				AppearancePairList[MatAndColor] = {}
+			end
+			if not p:IsA("MeshPart") then
+				table.insert(AppearancePairList[MatAndColor],p)
+			end
+			p.Parent = m:FindFirstChild(table.find(AppearancePairList,MatAndColor))
+		end
+	end
+	for i,ap in pairs(AppearancePairList) do
+		if iteratedUpdate then
+			local PartList = AppearancePairList[ap]
+			local union = {PartList[1]}
+			hl.Adornee = PartList[1]
+			if PartList then
+				print("MatColor",ap, #PartList)
+				local up = nil		
+				for i,v in pairs(PartList) do
+					if i==1 then
+						next(PartList)
+					end
+					print(math.ceil(i/#PartList*100).."/100")
+					local success, up = pcall(function()
+						return v:UnionAsync(union)
+					end)			
+					if not success then
+						--warn(up)
+						table.insert(errorParts,v)
+						--return
+					else
+						up.Parent = m
+						up.Name = m.Name.." Union"
+						union = {up}
+						hl.Adornee = up
+						v:Destroy()
+					end
+					wait()
+				end
+			end		
+		else
+			local PartList = AppearancePairList[ap]
+	
+			hl.Adornee = m
+			
+			if PartList then
+				if #PartList==1 then
+					next(AppearancePairList)
+				end
+				local neg = Instance.new("Part")
+				local orient,size = PartList[1].Parent:GetBoundingBox()
+				local gorient = m:GetBoundingBox()
+				neg.CFrame = CFrame.new(orient.Position)*(gorient-gorient.Position)
+				neg.Color = PartList[1].Color
+				neg.Material = PartList[1].Material
+				neg.Size = Vector3.new(0,0,0)
+				neg.Parent = PartList[1].Parent
+				--print("MatColor",ap, #PartList)
+				local up = nil		
+				--print(math.ceil(i/#PartList*100).."/100")
+				local success, up = pcall(function()
+					return neg:UnionAsync(PartList)
+				end)			
+				if not success then
+					print(up)
+					table.insert(errorParts,m)
+					--return
+				else
+					up.Parent = PartList[1].Parent
+					up.Name = m.Name.." Union"
+					neg:Destroy()
+					hl.Adornee = up
+					for i,v in pairs(PartList) do
+						v:Destroy()
+					end
+				end
+				wait()
+			end		
+		end
+		
+
+	end
+
+	print("     > Completed")
+	wait()
+end
+
+
+CHS:SetWaypoint("Part Count Optimization Complete")
+print("Complete: Instance count reduction")
+local optimized = 0
+
+for i,s in pairs(sele) do
+	for i,models in pairs(s:GetDescendants()) do
+		if models:IsA("BasePart") then
+			optimized+=1
+		end
+	end
+end
+hl:Destroy()
+game.Selection:Set(errorParts)
+
+
+print(unoptimized.." parts to "..optimized )
+
+
+
