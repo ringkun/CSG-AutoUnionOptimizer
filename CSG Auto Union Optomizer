@@ -38,7 +38,7 @@ for i,m:Model in pairs(modelList) do
 	print("[".. math.floor(i/#modelList*100)/100 .."]".."Union "..m.Name)
 
 	for i,p:BasePart in pairs(m:GetChildren()) do
-		if p:IsA("BasePart") then
+		if p:IsA("BasePart") and not p:IsA("MeshPart") then
 			local mat = string.split(tostring(p.Material), ".")[3]
 			local MatAndColor = "".. mat ..":"..p.Color.R .. ",".. p.Color.G ..","..
 				p.Color.B 
@@ -89,9 +89,9 @@ for i,m:Model in pairs(modelList) do
 			end		
 		else
 			local PartList = AppearancePairList[ap]
-	
+
 			hl.Adornee = m
-			
+
 			if PartList then
 				if #PartList==1 then
 					next(AppearancePairList)
@@ -126,7 +126,7 @@ for i,m:Model in pairs(modelList) do
 				wait()
 			end		
 		end
-		
+
 
 	end
 
@@ -151,6 +151,3 @@ game.Selection:Set(errorParts)
 
 
 print(unoptimized.." parts to "..optimized )
-
-
-
